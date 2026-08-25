@@ -111,9 +111,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onFileLoaded, isLo
         } else {
           try {
             const errData = JSON.parse(xhr.responseText);
-            setErrorMessage(errData.error || 'Upload failed.');
+            setErrorMessage(errData.error || 'Upload failed. Please try again.');
           } catch {
-            setErrorMessage(`Upload error (status ${xhr.status})`);
+            if (xhr.status === 404) {
+              setErrorMessage('Backend server is initializing. Please try uploading again in a few seconds.');
+            } else {
+              setErrorMessage(`Upload error (status ${xhr.status}). Please try again.`);
+            }
           }
         }
       };
