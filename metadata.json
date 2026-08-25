@@ -1,0 +1,6 @@
+{
+  "name": "WebM Video Converter & Web Optimizer",
+  "description": "Convert video files (MP4, MOV, AVI, MKV) to high-efficiency WebM with automatic size optimization, VP9/AV1 encoding, web presets, side-by-side preview, and metrics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
