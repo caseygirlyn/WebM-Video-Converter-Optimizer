@@ -82,52 +82,68 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onFileLoaded, isLo
 
     try {
       setUploadProgress(10);
-      const xhr = new XMLHttpRequest();
+      const uploadWithRetry = (attempt: number = 1) => {
+        const xhr = new XMLHttpRequest();
 
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 90);
-          setUploadProgress(percent);
-        }
-      });
-
-      xhr.open('POST', '/api/upload');
-
-      xhr.onload = () => {
-        setUploadProgress(null);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            onFileLoaded({
-              fileId: data.fileId,
-              filePath: data.filePath,
-              filename: data.filename,
-              metadata: data.metadata,
-              localBlobUrl,
-            });
-          } catch (e) {
-            setErrorMessage('Failed to parse server response.');
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 90);
+            setUploadProgress(percent);
           }
-        } else {
-          try {
-            const errData = JSON.parse(xhr.responseText);
-            setErrorMessage(errData.error || 'Upload failed. Please try again.');
-          } catch {
-            if (xhr.status === 404) {
-              setErrorMessage('Backend server is initializing. Please try uploading again in a few seconds.');
-            } else {
-              setErrorMessage(`Upload error (status ${xhr.status}). Please try again.`);
+        });
+
+        xhr.open('POST', '/api/upload');
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(null);
+            try {
+              const data = JSON.parse(xhr.responseText);
+              onFileLoaded({
+                fileId: data.fileId,
+                filePath: data.filePath,
+                filename: data.filename,
+                metadata: data.metadata,
+                localBlobUrl,
+              });
+            } catch (e) {
+              setErrorMessage('Failed to parse server response.');
+            }
+          } else if (xhr.status === 404 && attempt <= 3) {
+            // Auto retry in case server was restarting
+            setTimeout(() => {
+              uploadWithRetry(attempt + 1);
+            }, 1000 * attempt);
+          } else {
+            setUploadProgress(null);
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              setErrorMessage(errData.error || 'Upload failed. Please try again.');
+            } catch {
+              if (xhr.status === 404) {
+                setErrorMessage('Unable to connect to conversion service. Please click Select Source File to try again.');
+              } else {
+                setErrorMessage(`Upload error (status ${xhr.status}). Please try again.`);
+              }
             }
           }
-        }
+        };
+
+        xhr.onerror = () => {
+          if (attempt <= 2) {
+            setTimeout(() => {
+              uploadWithRetry(attempt + 1);
+            }, 1000);
+          } else {
+            setUploadProgress(null);
+            setErrorMessage('Network connection lost during upload. Please check your connection and try again.');
+          }
+        };
+
+        xhr.send(formData);
       };
 
-      xhr.onerror = () => {
-        setUploadProgress(null);
-        setErrorMessage('Network error while uploading video.');
-      };
-
-      xhr.send(formData);
+      uploadWithRetry(1);
     } catch (err: any) {
       setUploadProgress(null);
       setErrorMessage(err.message || 'Failed to upload video');
