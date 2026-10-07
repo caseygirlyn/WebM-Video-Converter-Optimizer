@@ -2,6 +2,8 @@
 
 A high-performance video transcoding and web optimization application built to convert videos (MP4, MOV, MKV, AVI, etc.) into ultra-efficient WebM (VP9/Opus) format with maximum payload reduction and fast Largest Contentful Paint (LCP) for modern websites.
 
+![Velocity Demo](https://girlyn.com/images/Velocity.webm)
+
 ---
 
 ## 🚀 Key Features
